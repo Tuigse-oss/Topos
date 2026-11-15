@@ -83,7 +83,7 @@ point the build at it (the path is baked in at compile time through
 `GUNGRAUN_RUNNER`):
 
 ```bash
-cargo install gungraun-runner --version 0.19.4
+cargo install gungraun-runner --version 0.20.0
 export GUNGRAUN_RUNNER=~/.cargo/bin/gungraun-runner
 cargo bench --bench scan_layout
 ```
