@@ -41,22 +41,30 @@ free-space tile, and crisp 8-point captions, in a light or dark theme.
 
 ## Install
 
-The first release is on its way. Each release will have portable zips
-and installers for 64-bit and 32-bit Windows on the
-[Releases](https://github.com/bradwilliamson/Topos/releases) page, along
-with a `SHA256SUMS.txt`. The installers install per user by default (no
-administrator rights) or for all users.
+Get Topos from the
+[latest release](https://github.com/bradwilliamson/Topos/releases/latest):
 
-Release files are not code-signed, so SmartScreen may show "Windows
-protected your PC". Check the download against `SHA256SUMS.txt`
-(`Get-FileHash <file>` in PowerShell) and its build provenance, then choose
-**More info** and **Run anyway**:
+- **Installer**: `Topos-v<version>-x86_64-setup.exe`, or `-x86-setup.exe`
+  for 32-bit Windows. It installs for you alone by default (no
+  administrator rights) or for all users, adds a Start menu entry, upgrades
+  in place, and uninstalls from Settings > Apps. Your settings and scan
+  cache in `%LOCALAPPDATA%\Topos` are kept.
+- **Portable zip**: `Topos-v<version>-x86_64-windows.zip`, or
+  `-x86-windows.zip`. Unzip and run `Topos.exe`; nothing is installed.
 
-```bash
+The files are not code-signed, so SmartScreen may say "Windows protected
+your PC". Check the download first, then choose **More info** and **Run
+anyway**:
+
+```powershell
+Get-FileHash .\Topos-v0.1.0-x86_64-setup.exe   # compare with SHA256SUMS.txt
 gh attestation verify Topos-v0.1.0-x86_64-setup.exe --repo bradwilliamson/Topos
 ```
 
-Until then, [build it from source](#building).
+The second line checks GitHub's build provenance: that the file was built
+by this repository's release workflow from a tagged commit.
+
+You can also [build Topos from source](#building).
 
 ## Using Topos
 
