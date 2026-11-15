@@ -40,7 +40,7 @@ winsafe = { version = "0.0.29", features = ["advapi", "dwm", "gui", "shell"] }
 embed-manifest = "1.5.1"
 
 [dev-dependencies]
-gungraun = "0.19"
+gungraun = "0.20"
 # Decode what the icon module encodes, so its PNG and deflate output is
 # checked by independent implementations.
 miniz_oxide = "0.9"
