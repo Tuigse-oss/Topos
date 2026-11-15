@@ -285,7 +285,11 @@ pub struct DriveInfo {
 #[must_use]
 pub fn drives() -> Vec<DriveInfo> {
     use sysinfo::Disks;
-    let disks = Disks::new_with_refreshed_list();
+    // Listing can fail (sysinfo 0.40 reports why). Topos then offers no
+    // drives, as on a system without any; folders still scan by path.
+    let Ok(disks) = Disks::new_with_refreshed_list() else {
+        return Vec::new();
+    };
     let mut out: Vec<DriveInfo> = disks
         .iter()
         .map(|disk| DriveInfo {
