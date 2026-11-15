@@ -1,0 +1,176 @@
+name: packages
+
+# Publishes a release to winget, Chocolatey, and the Microsoft Store once it
+# is published on GitHub (drafts have no public download URLs). Scoop needs
+# nothing here: the bradwilliamson/scoop-topos bucket picks up new releases by
+# itself. Each channel is switched on by a repository variable, so one can
+# be turned off without touching the others:
+#   PUBLISH_WINGET=true      needs secret WINGET_TOKEN
+#   PUBLISH_CHOCOLATEY=true  needs secret CHOCOLATEY_API_KEY
+#   PUBLISH_MSSTORE=true     needs secrets AZURE_AD_TENANT_ID,
+#                            AZURE_AD_APPLICATION_CLIENT_ID,
+#                            AZURE_AD_APPLICATION_SECRET, SELLER_ID and
+#                            variables MSSTORE_PRODUCT_ID, MSIX_IDENTITY_NAME,
+#                            MSIX_PUBLISHER
+on:
+  release:
+    types: [published]
+  # Re-runs one release's packages, for example after a channel failed.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, such as v0.1.0
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
+jobs:
+  winget:
+    if: vars.PUBLISH_WINGET == 'true' && !github.event.release.prerelease
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TAG }}
+          persist-credentials: false
+      - name: Render the manifests
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern SHA256SUMS.txt
+          python packaging/render.py "${TAG#v}" SHA256SUMS.txt out
+      - name: Submit to winget-pkgs
+        # Opens a pull request from the token owner's fork of
+        # microsoft/winget-pkgs; winget's bots validate and merge it.
+        shell: pwsh
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          $url = 'https://github.com/microsoft/winget-create/releases/download/v1.12.13.0/wingetcreate.exe'
+          Invoke-WebRequest $url -OutFile wingetcreate.exe
+          $hash = (Get-FileHash wingetcreate.exe -Algorithm SHA256).Hash
+          if ($hash -ne '24042BD37915805615E6CF969AC57C6439124C3FE85823327F5F3FB24BD9FFEA') {
+            throw "wingetcreate.exe has an unexpected hash: $hash"
+          }
+          .\wingetcreate.exe submit out\winget --token $env:WINGET_TOKEN
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  chocolatey:
+    if: vars.PUBLISH_CHOCOLATEY == 'true' && !github.event.release.prerelease
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TAG }}
+          persist-credentials: false
+      - name: Render the package
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern SHA256SUMS.txt
+          python packaging/render.py "${TAG#v}" SHA256SUMS.txt out
+      - name: Pack and push
+        # Every version goes through Chocolatey's moderation queue before it
+        # is listed.
+        shell: pwsh
+        env:
+          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+        run: |
+          choco pack out\chocolatey\topos.nuspec --outputdirectory out
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $version = $env:TAG.TrimStart('v')
+          choco push "out\topos.$version.nupkg" --source https://push.chocolatey.org/ --api-key $env:CHOCOLATEY_API_KEY
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  msstore:
+    # Updates only: the Store's first submission is made by hand in Partner
+    # Center (packaging/README.md, "Microsoft Store"); the msstore CLI
+    # cannot create one. A submission still goes through Store
+    # certification before it is live.
+    if: vars.PUBLISH_MSSTORE == 'true' && !github.event.release.prerelease
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Download the Store package and check it against SHA256SUMS.txt
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          upload="Topos-$TAG-store.msixupload"
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "$upload" --pattern SHA256SUMS.txt
+          grep -E "^[0-9a-f]{64} [ *]$upload\$" SHA256SUMS.txt > upload.sha256
+          sha256sum -c upload.sha256
+      - name: Check the package identity matches Partner Center
+        # A release built before the identity variables were set carries the
+        # test-only identity, which Partner Center would reject after the
+        # upload; stop here with a clear message instead.
+        shell: pwsh
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSSTORE_PRODUCT_ID: ${{ vars.MSSTORE_PRODUCT_ID }}
+        run: |
+          foreach ($name in 'MSIX_IDENTITY_NAME', 'MSIX_PUBLISHER', 'MSSTORE_PRODUCT_ID') {
+            if (-not (Get-Item "env:$name").Value) { throw "repository variable $name is not set" }
+          }
+          $tar = Join-Path $env:SystemRoot 'System32\tar.exe'
+          $bundle = "Topos-$env:TAG.msixbundle"
+          New-Item -ItemType Directory check | Out-Null
+          & $tar -xf "Topos-$env:TAG-store.msixupload" -C check $bundle
+          if ($LASTEXITCODE -ne 0) { throw "the .msixupload holds no $bundle" }
+          & $tar -xf "check\$bundle" -C check AppxMetadata/AppxBundleManifest.xml
+          if ($LASTEXITCODE -ne 0) { throw "$bundle has no bundle manifest" }
+          [xml] $manifest = Get-Content -Raw -Encoding UTF8 check\AppxMetadata\AppxBundleManifest.xml
+          $identity = $manifest.Bundle.Identity
+          Write-Host "package identity: $($identity.Name), $($identity.Publisher), $($identity.Version)"
+          if ($identity.Name -cne $env:MSIX_IDENTITY_NAME -or $identity.Publisher -cne $env:MSIX_PUBLISHER) {
+            throw "the release's package identity ($($identity.Name), $($identity.Publisher)) is not Partner Center's ($env:MSIX_IDENTITY_NAME, $env:MSIX_PUBLISHER); set the variables and rebuild the release"
+          }
+      - name: Install the Microsoft Store Developer CLI
+        # Microsoft's msstore CLI, pinned by version and hash like
+        # wingetcreate above. (The microsoft-store-apppublisher action
+        # downloads the same zip without checking it.)
+        shell: pwsh
+        run: |
+          $url = 'https://github.com/microsoft/msstore-cli/releases/download/v0.4.3/MSStoreCLI-win-x64.zip'
+          Invoke-WebRequest $url -OutFile msstore.zip
+          $hash = (Get-FileHash msstore.zip -Algorithm SHA256).Hash
+          if ($hash -ne 'C5FB008B616F96B1B55F1D52E4E0A5DD8F6C156129B5F52F9B97EC0EED11BD57') {
+            throw "MSStoreCLI-win-x64.zip has an unexpected hash: $hash"
+          }
+          $dir = Join-Path $env:RUNNER_TEMP 'msstore'
+          Expand-Archive msstore.zip -DestinationPath $dir
+          $dir >> $env:GITHUB_PATH
+      - name: Sign in to Partner Center
+        # Secrets reach the CLI through the environment, not the script
+        # text. Every command but reconfigure first runs the CLI's
+        # interactive setup when it is not configured, so reconfigure comes
+        # first; the CLI's telemetry is then switched off for the upload.
+        shell: pwsh
+        env:
+          AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+          AZURE_AD_APPLICATION_CLIENT_ID: ${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID }}
+          AZURE_AD_APPLICATION_SECRET: ${{ secrets.AZURE_AD_APPLICATION_SECRET }}
+          SELLER_ID: ${{ secrets.SELLER_ID }}
+        run: |
+          msstore reconfigure --tenantId $env:AZURE_AD_TENANT_ID --sellerId $env:SELLER_ID `
+            --clientId $env:AZURE_AD_APPLICATION_CLIENT_ID --clientSecret $env:AZURE_AD_APPLICATION_SECRET
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          msstore settings --enableTelemetry false
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Submit the package
+        # Uploads the .msixupload to a new submission built from the last
+        # published one (listing, pricing, and age rating carry over) and
+        # commits it for certification.
+        shell: pwsh
+        env:
+          MSSTORE_PRODUCT_ID: ${{ vars.MSSTORE_PRODUCT_ID }}
+        run: |
+          msstore publish "Topos-$env:TAG-store.msixupload" --appId $env:MSSTORE_PRODUCT_ID
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -1,0 +1,296 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Superseded PR runs are cancelled; every commit on main keeps its result.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt
+      - run: cargo +1.99.1 fmt --all -- --check
+      # Bare rustfmt as well, as CONTRIBUTING.md lists it: it also checks
+      # files cargo fmt does not reach through a target (build.rs).
+      - run: rustfmt +1.99.1 --check src/*.rs src/win/*.rs build.rs benches/*.rs examples/*.rs
+
+  notices:
+    # THIRD-PARTY-NOTICES.txt ships in every zip, installer, and package: it
+    # must name exactly the crates linked into Topos.exe, with their license
+    # texts. Regenerating it from Cargo.lock must change nothing.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - run: cargo +1.99.1 fetch --locked
+      - run: python3 scripts/third-party-notices.py
+      - run: git diff --exit-code THIRD-PARTY-NOTICES.txt
+
+  clippy:
+    name: clippy (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # The window (src/win/) is cfg(windows), so it is linted where it
+        # compiles, for both shipped architectures; Linux covers the
+        # cfg(not(windows)) stub.
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: windows-latest
+            target: i686-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install 1.99.1 --profile minimal --component clippy --target ${{ matrix.target }}
+      - run: cargo +1.99.1 clippy --locked --all-targets --all-features --target ${{ matrix.target }} -- -D warnings
+
+  test:
+    name: test (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # The cfg(windows) tests only compile and run on Windows, and the
+        # 32-bit build has its own pointer width; a Linux-only run would ship
+        # both unexercised while green. x86 runs natively on the x64 runner.
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: windows-latest
+            target: i686-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install 1.99.1 --profile minimal --target ${{ matrix.target }}
+      # Plain `cargo test` leaves out the Gungraun bench target, which needs
+      # gungraun-runner and Valgrind; clippy --all-targets above still
+      # compiles it and the examples.
+      - run: cargo +1.99.1 test --locked --target ${{ matrix.target }}
+
+  performance:
+    name: performance (instructions and heap)
+    # Callgrind counts instructions and DHAT counts heap bytes, so unlike
+    # wall-clock time on a shared runner the numbers do not drift between
+    # runs of the same code. Every bench runs on the base commit and then on
+    # this one, on the same runner. A pull request fails when any bench needs
+    # over 1% more instructions, or allocates or peaks at over 2% more heap.
+    # A deliberate trade-off is accepted by adding the label
+    # `performance-accepted` to the pull request and re-running this job; the
+    # comparison is still reported. Pushes to main report and never fail.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install Valgrind
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends valgrind
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - name: Bench the base commit
+        id: base
+        shell: bash
+        run: |
+          # The runner must match the gungraun crate in each commit's Cargo.lock.
+          runner_for() {
+            local version
+            version=$(awk '$0 == "name = \"gungraun\"" { getline; gsub(/"/, "", $3); print $3 }' Cargo.lock)
+            if [ ! -x "$RUNNER_TEMP/gungraun-$version/bin/gungraun-runner" ]; then
+              cargo +1.99.1 install gungraun-runner --version "$version" --locked --root "$RUNNER_TEMP/gungraun-$version" >&2
+            fi
+            echo "$version"
+          }
+          head=$(git rev-parse HEAD)
+          head_version=$(runner_for)
+          echo "head_version=$head_version" >> "$GITHUB_OUTPUT"
+          if [ -z "$BASE_SHA" ] || ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            echo "No base commit to compare with; benching this commit only."
+            exit 0
+          fi
+          git checkout --quiet --detach "$BASE_SHA"
+          if [ -f benches/scan_layout.rs ]; then
+            base_version=$(runner_for)
+            if [ "$base_version" = "$head_version" ]; then
+              GUNGRAUN_RUNNER="$RUNNER_TEMP/gungraun-$base_version/bin/gungraun-runner" \
+                cargo +1.99.1 bench --locked --bench scan_layout -- --save-baseline=base
+              echo "saved=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "Gungraun $base_version on the base, $head_version here: baselines do not carry over, so nothing is compared."
+            fi
+          fi
+          git checkout --quiet --detach "$head"
+      - name: Bench this commit against it
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SAVED: ${{ steps.base.outputs.saved }}
+          RUNNER_VERSION: ${{ steps.base.outputs.head_version }}
+        run: |
+          args=()
+          mode="no base commit to compare with"
+          if [ "$SAVED" = true ]; then
+            args=(--baseline=base)
+            mode="compared with the base commit; reported only"
+            if [ -n "$PR_NUMBER" ]; then
+              labels=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/labels" --jq '.[].name')
+              if grep -qx performance-accepted <<<"$labels"; then
+                mode="compared with the base commit; regressions accepted by the performance-accepted label"
+              else
+                args+=(--callgrind-limits=ir=1% --dhat-limits=totalbytes=2%,attgmaxbytes=2%)
+                mode="compared with the base commit; fails over 1% more instructions or 2% more heap"
+              fi
+            fi
+          fi
+          set +e
+          GUNGRAUN_RUNNER="$RUNNER_TEMP/gungraun-$RUNNER_VERSION/bin/gungraun-runner" \
+            cargo +1.99.1 bench --locked --bench scan_layout -- "${args[@]}" 2>&1 | tee bench.txt
+          status=${PIPESTATUS[0]}
+          set -e
+          {
+            echo "### Benchmarks"
+            echo
+            echo "Callgrind instructions and DHAT heap, $mode."
+            echo
+            echo '```'
+            sed 's/\x1b\[[0-9;]*m//g' bench.txt | grep -vE '^ *(Compiling|Downloading|Downloaded|Finished|Running) '
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
+  installer:
+    name: installer (${{ matrix.arch }}; install, upgrade, uninstall)
+    # Package managers upgrade by running the new installer over the old one,
+    # so every change is checked with two builds of the installer, for each
+    # architecture. The cap keeps a stuck Setup (for example a dialog
+    # waiting for a click) from burning the 6 h quota.
+    runs-on: windows-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            target: x86_64-pc-windows-msvc
+            suffix: x86_64
+          - arch: x86
+            target: i686-pc-windows-msvc
+            suffix: x86
+    env:
+      ARCH: ${{ matrix.arch }}
+      TARGET: ${{ matrix.target }}
+      SUFFIX: ${{ matrix.suffix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Read the program version
+        shell: bash
+        run: echo "VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)" >> "$GITHUB_ENV"
+      - run: rustup toolchain install 1.99.1 --profile minimal --target ${{ matrix.target }}
+      - run: cargo +1.99.1 build --locked --release --target ${{ matrix.target }}
+      - run: cargo +1.99.1 run --locked --release --example art -- installer-art
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p "package-$ARCH"
+          cp "target/$TARGET/release/Topos.exe" "package-$ARCH/"
+          cp LICENSE-MIT LICENSE-APACHE THIRD-PARTY-NOTICES.txt README.md "package-$ARCH/"
+      - name: Build an older and a newer installer
+        shell: pwsh
+        run: |
+          choco install innosetup --version=6.7.1 --no-progress -y
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          & $iscc /DAppVersion=0.0.1 "/DTargetArch=$env:ARCH" /DOutputDir=..\installer-test installer\topos.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $iscc /DAppVersion=0.0.2 "/DTargetArch=$env:ARCH" /DOutputDir=..\installer-test installer\topos.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Install, upgrade while running, reinstall, and uninstall
+        shell: pwsh
+        run: >
+          installer\test-installer.ps1 -Arch $env:ARCH
+          -Old "installer-test\Topos-v0.0.1-$env:SUFFIX-setup.exe" -OldVersion 0.0.1
+          -New "installer-test\Topos-v0.0.2-$env:SUFFIX-setup.exe" -NewVersion 0.0.2
+          -ProgramVersion $env:VERSION
+
+  msix:
+    name: msix (${{ matrix.arch }}; pack, install, alias, remove)
+    # The Store package is checked the same way as the installer: built from
+    # this commit, then a signed copy installed, run through its alias, and
+    # removed.
+    runs-on: windows-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            target: x86_64-pc-windows-msvc
+          - arch: x86
+            target: i686-pc-windows-msvc
+    env:
+      ARCH: ${{ matrix.arch }}
+      TARGET: ${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Read the program version
+        shell: bash
+        run: echo "VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)" >> "$GITHUB_ENV"
+      - run: rustup toolchain install 1.99.1 --profile minimal --target ${{ matrix.target }}
+      - run: cargo +1.99.1 build --locked --release --target ${{ matrix.target }}
+      - run: cargo +1.99.1 run --locked --release --example art -- installer-art
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p "package-$ARCH"
+          cp "target/$TARGET/release/Topos.exe" "package-$ARCH/"
+          cp LICENSE-MIT LICENSE-APACHE THIRD-PARTY-NOTICES.txt "package-$ARCH/"
+      - name: Build the MSIX package
+        shell: pwsh
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY_NAME: ${{ vars.MSIX_PUBLISHER_DISPLAY_NAME }}
+        run: >
+          packaging\msix\build-msix.ps1 -Version $env:VERSION -Arch $env:ARCH
+          -SourceDir "package-$env:ARCH" -ArtDir installer-art -OutDir msix
+          -IdentityName "$env:MSIX_IDENTITY_NAME" -Publisher "$env:MSIX_PUBLISHER"
+          -PublisherDisplayName "$env:MSIX_PUBLISHER_DISPLAY_NAME"
+      - name: Install a signed copy, run the alias, and remove it
+        shell: powershell
+        run: installer\test-msix.ps1 -Package "msix\Topos-v$env:VERSION-$env:ARCH.msix" -Version $env:VERSION

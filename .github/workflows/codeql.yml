@@ -1,0 +1,74 @@
+name: codeql
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "41 7 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # Code scanning can only take uploads once the repository is public (or has
+  # GitHub Advanced Security). Until then the analysis is skipped, not failed,
+  # and it starts on its own with the first run after the repo goes public.
+  visibility:
+    runs-on: ubuntu-latest
+    outputs:
+      public: ${{ steps.check.outputs.public }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        # Read visibility in its own command so a failed API call fails the
+        # step instead of writing an empty value that reads as "private" and
+        # silently skips the analysis.
+        run: |
+          set -euo pipefail
+          private=$(gh api "repos/$REPO" --jq '.private')
+          case "$private" in
+          true) echo "public=false" >> "$GITHUB_OUTPUT" ;;
+          false) echo "public=true" >> "$GITHUB_OUTPUT" ;;
+          *)
+            echo "::error::could not read repository visibility (got '$private')"
+            exit 1
+            ;;
+          esac
+
+  analyze:
+    name: analyze (${{ matrix.language }})
+    needs: visibility
+    if: needs.visibility.outputs.public == 'true'
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The window (src/win/) is cfg(windows); the extractor only sees it
+          # when it runs where it compiles.
+          - language: rust
+            os: windows-latest
+          - language: actions
+            os: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The Rust extractor needs the pinned toolchain and the std sources.
+      - if: matrix.language == 'rust'
+        run: rustup toolchain install 1.99.1 --profile minimal --component rust-src
+      - uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          queries: security-extended
+      - uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          category: /language:${{ matrix.language }}

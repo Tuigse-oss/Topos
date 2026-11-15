@@ -1,0 +1,16 @@
+# cargo audit settings, used by the security and release workflows.
+
+[advisories]
+# zbus 6 absorbed zvariant, zvariant_derive, and zbus_names, so their older
+# lines are marked unmaintained. These are informational notices, not
+# vulnerabilities, and have no patched version. They reach Cargo.lock only
+# through opener's `reveal` feature on Linux (D-Bus); Topos.exe is built for
+# Windows and links none of them (`cargo tree --target
+# x86_64-pc-windows-msvc -i zvariant` prints nothing). opener 0.9.0, the
+# latest release, still requires zbus 5. Remove these once opener moves to
+# zbus 6.
+ignore = [
+    "RUSTSEC-2026-0370", # zvariant
+    "RUSTSEC-2026-0371", # zbus_names
+    "RUSTSEC-2026-0372", # zvariant_derive
+]

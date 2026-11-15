@@ -1,0 +1,11 @@
+/target
+
+# Release files built by hand (see packaging/README.md)
+/installer-art
+/package-x64
+/package-x86
+/dist
+/installer-test
+/msix
+/out
+/SHA256SUMS.txt

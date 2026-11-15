@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.10.0.schema.json
+PackageIdentifier: TUIGSE.Topos
+PackageVersion: {{VERSION}}
+PackageLocale: en-US
+Publisher: Tuigse LLC
+PublisherUrl: https://github.com/Tuigse-oss
+PublisherSupportUrl: https://github.com/bradwilliamson/Topos/issues
+PackageName: Topos
+PackageUrl: https://github.com/bradwilliamson/Topos
+License: MIT OR Apache-2.0
+LicenseUrl: https://github.com/bradwilliamson/Topos/blob/main/LICENSE-MIT
+Copyright: Copyright (c) 2026 Tuigse LLC
+ShortDescription: Free, open-source disk-space treemap visualizer for Windows 10 and 11.
+Description: |-
+  Topos shows a drive or folder as a treemap: every folder and file is a tile sized by how much space it takes,
+  nested inside its folder. Zoom in and out, open a file or show it in Explorer, or delete it to the Recycle Bin
+  straight from the map. Each drive's last scan is kept, so the next start shows the map in under a second while
+  a fresh scan runs.
+Tags:
+  - disk-space
+  - disk-usage
+  - treemap
+  - storage
+  - open-source
+ReleaseNotesUrl: https://github.com/bradwilliamson/Topos/releases/tag/v{{VERSION}}
+ManifestType: defaultLocale
+ManifestVersion: 1.10.0

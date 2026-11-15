@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.10.0.schema.json
+PackageIdentifier: TUIGSE.Topos
+PackageVersion: {{VERSION}}
+InstallerType: inno
+# The Add/Remove Programs key Inno Setup writes for the installer's AppId
+# (the same for both architectures), so winget recognizes an existing
+# install and upgrades it in place.
+ProductCode: '{3F66430A-542C-46DD-949D-935DDC82C1A9}_is1'
+MinimumOSVersion: 10.0.0.0
+UpgradeBehavior: install
+Installers:
+  - Architecture: x64
+    Scope: user
+    InstallerUrl: {{X64_SETUP_URL}}
+    InstallerSha256: {{X64_SETUP_SHA256}}
+    InstallerSwitches:
+      Custom: /CURRENTUSER
+  - Architecture: x64
+    Scope: machine
+    ElevationRequirement: elevatesSelf
+    InstallerUrl: {{X64_SETUP_URL}}
+    InstallerSha256: {{X64_SETUP_SHA256}}
+    InstallerSwitches:
+      Custom: /ALLUSERS
+  - Architecture: x86
+    Scope: user
+    InstallerUrl: {{X86_SETUP_URL}}
+    InstallerSha256: {{X86_SETUP_SHA256}}
+    InstallerSwitches:
+      Custom: /CURRENTUSER
+  - Architecture: x86
+    Scope: machine
+    ElevationRequirement: elevatesSelf
+    InstallerUrl: {{X86_SETUP_URL}}
+    InstallerSha256: {{X86_SETUP_SHA256}}
+    InstallerSwitches:
+      Custom: /ALLUSERS
+ManifestType: installer
+ManifestVersion: 1.10.0

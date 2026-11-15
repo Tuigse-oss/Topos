@@ -1,0 +1,58 @@
+[package]
+name = "topos"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99.1"
+description = "Topos: disk-space treemap visualizer for Windows 10 and 11"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+authors = ["Tuigse LLC"]
+repository = "https://github.com/bradwilliamson/Topos"
+
+# The program is Topos.exe; the library keeps the crate name so the
+# Gungraun benches can measure the scanner, layout, and painting directly.
+[lib]
+name = "topos"
+path = "src/lib.rs"
+
+[[bin]]
+name = "Topos"
+path = "src/main.rs"
+
+[dependencies]
+chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
+clap = { version = "4.6.7", features = ["derive"] }
+opener = { version = "0.8.5", features = ["reveal"] }
+rayon = "1.12"
+sysinfo = "0.36"
+trash = "5"
+
+# The window: safe wrappers over Win32 (GDI drawing, common controls, task
+# dialogs, the dark title bar, the registry value that says whether Windows
+# apps are dark, and the taskbar button's progress), so the program keeps
+# `#![forbid(unsafe_code)]`.
+[target.'cfg(windows)'.dependencies]
+winsafe = { version = "0.0.29", features = ["advapi", "dwm", "gui", "shell"] }
+
+# Embeds the application manifest (common controls 6, DPI awareness) without
+# needing a resource compiler.
+[build-dependencies]
+embed-manifest = "1.5.1"
+
+[dev-dependencies]
+gungraun = "0.19"
+# Decode what the icon module encodes, so its PNG and deflate output is
+# checked by independent implementations.
+miniz_oxide = "0.9"
+png = "0.18"
+
+[[bench]]
+name = "scan_layout"
+harness = false
+
+[profile.profiling]
+inherits = "release"
+debug = "line-tables-only"
+strip = "none"
+
+[workspace]

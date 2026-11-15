@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>topos</id>
+    <version>{{VERSION}}</version>
+    <title>Topos</title>
+    <authors>Tuigse LLC</authors>
+    <owners>Tuigse LLC</owners>
+    <copyright>Copyright (c) 2026 Tuigse LLC</copyright>
+    <projectUrl>https://github.com/bradwilliamson/Topos</projectUrl>
+    <packageSourceUrl>https://github.com/bradwilliamson/Topos/tree/main/packaging/chocolatey</packageSourceUrl>
+    <projectSourceUrl>https://github.com/bradwilliamson/Topos</projectSourceUrl>
+    <docsUrl>https://github.com/bradwilliamson/Topos#readme</docsUrl>
+    <bugTrackerUrl>https://github.com/bradwilliamson/Topos/issues</bugTrackerUrl>
+    <licenseUrl>https://github.com/bradwilliamson/Topos/blob/main/LICENSE-MIT</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <releaseNotes>https://github.com/bradwilliamson/Topos/releases/tag/v{{VERSION}}</releaseNotes>
+    <tags>topos disk-space disk-usage treemap storage foss</tags>
+    <summary>Free, open-source disk-space treemap visualizer for Windows 10 and 11.</summary>
+    <description><![CDATA[Topos shows a drive or folder as a treemap: every folder and file is a tile sized by how much space it takes, nested inside its folder. Zoom in and out, open a file or show it in Explorer, or delete it to the Recycle Bin straight from the map.
+
+Each drive's last scan is kept, so the next start shows the map in under a second while a fresh scan runs.
+
+This package installs Topos for all users: the 64-bit build on 64-bit Windows, the 32-bit build otherwise (or with `--x86`). Settings and scan caches in `%LOCALAPPDATA%\Topos` are kept when it is uninstalled.]]></description>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

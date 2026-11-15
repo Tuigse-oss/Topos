@@ -1,0 +1,39 @@
+name: Bug report
+description: Something does not work as described
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for the report. Please leave out anything personal in paths (you can replace your user name with `<user>`).
+  - type: input
+    id: version
+    attributes:
+      label: Topos version
+      description: Help > About Topos shows it.
+      placeholder: v0.1.0
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How Topos was installed
+      options: ["Installer", "Zip", "winget", "Chocolatey", "Scoop", "Microsoft Store", "Built from source"]
+  - type: input
+    id: target
+    attributes:
+      label: What you scanned
+      description: A drive, a folder, a network share, a OneDrive folder, ...
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Steps, what you expected, and what Topos did instead. A screenshot helps for a map that looks wrong.
+    validations:
+      required: true

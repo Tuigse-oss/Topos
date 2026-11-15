@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MSIX manifest template for the Microsoft Store package. build-msix.ps1
+  fills in the {{...}} placeholders for one architecture:
+
+    IDENTITY_NAME, PUBLISHER, PUBLISHER_DISPLAY_NAME
+      Package/Identity/Name, Package/Identity/Publisher, and
+      Package/Properties/PublisherDisplayName from Partner Center's
+      Product identity page (repository variables MSIX_IDENTITY_NAME,
+      MSIX_PUBLISHER, MSIX_PUBLISHER_DISPLAY_NAME). Until they exist the
+      script uses clearly test-only values, which the Store would reject.
+    VERSION
+      The release version, X.Y.Z. The package version is X.Y.Z.0: the
+      Store reserves the fourth part.
+    ARCH
+      x64 or x86.
+
+  Topos is a plain Win32 program, so it runs as a full-trust desktop app
+  (runFullTrust, which Partner Center asks to justify on the first
+  submission). Writes to %LOCALAPPDATA% are virtualized into the package's
+  own data folder, which is removed with the package; there are no
+  unvirtualizedResources.
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap3 desktop rescap">
+
+  <Identity
+    Name="{{IDENTITY_NAME}}"
+    Publisher="{{PUBLISHER}}"
+    Version="{{VERSION}}.0"
+    ProcessorArchitecture="{{ARCH}}" />
+
+  <Properties>
+    <DisplayName>Topos</DisplayName>
+    <PublisherDisplayName>{{PUBLISHER_DISPLAY_NAME}}</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <Description>Disk-space treemap visualizer for Windows 10 and 11.</Description>
+  </Properties>
+
+  <!-- Windows 10 1809 and later. MaxVersionTested is Windows 11 24H2, the
+       SDK the release runner packs with. -->
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="Topos" Executable="Topos.exe" EntryPoint="Windows.FullTrustApplication">
+      <!-- The logos name the unqualified file; resources.pri (makepri)
+           maps each to its scale-, targetsize- and altform- variants in
+           Assets\. -->
+      <uap:VisualElements
+        DisplayName="Topos"
+        Description="Disk-space treemap visualizer"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
+      </uap:VisualElements>
+      <Extensions>
+        <!-- `topos.exe` on the PATH (%LOCALAPPDATA%\Microsoft\WindowsApps),
+             so `topos D:\` works from a prompt as it does for the zip and
+             installer builds. -->
+        <uap3:Extension Category="windows.appExecutionAlias" Executable="Topos.exe" EntryPoint="Windows.FullTrustApplication">
+          <uap3:AppExecutionAlias>
+            <desktop:ExecutionAlias Alias="topos.exe" />
+          </uap3:AppExecutionAlias>
+        </uap3:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>
