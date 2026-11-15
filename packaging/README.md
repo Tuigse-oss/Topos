@@ -178,11 +178,12 @@ The package is a full-trust desktop app (`runFullTrust`) with the alias
 signs it.
 
 The package identity (name and publisher) must be exactly the one Partner
-Center assigns. Until the repository variables below are set, packages are
-built with clearly test-only values (`TUIGSE.Topos.TestOnly`,
-`CN=TUIGSE Topos Test Only`) and the build warns: they install and test
-fine, but the Store rejects them, and the `msstore` job refuses to upload
-them.
+Center assigns. Until the repository variables below are set, test builds
+(pull requests and manual runs) use clearly test-only values
+(`TUIGSE.Topos.TestOnly`, `CN=TUIGSE Topos Test Only`) and warn: they
+install and test fine, but the Store rejects them. A tagged release stops
+at its first step until the variables are set, so a test-only package is
+never published, and the `msstore` job refuses to upload one.
 
 ### One-time setup
 
