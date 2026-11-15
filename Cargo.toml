@@ -22,7 +22,7 @@ path = "src/main.rs"
 [dependencies]
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
 clap = { version = "4.6.7", features = ["derive"] }
-opener = { version = "0.8.5", features = ["reveal"] }
+opener = { version = "0.9.0", features = ["reveal"] }
 rayon = "1.12"
 sysinfo = "0.36"
 trash = "5"
