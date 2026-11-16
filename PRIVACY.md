@@ -3,8 +3,9 @@
 Topos collects nothing.
 
 - It has no network code: no telemetry, no crash reports, no update checks,
-  no accounts. The only time it opens anything online is when you click the
-  project link in About, which opens your browser.
+  no accounts. Topos makes no network requests itself. Clicking the project
+  link in About opens your browser, and Run or Open starts the selected file
+  in its own program, which may go online.
 - Scanning reads file and folder names, sizes, and times on your own drives
   to draw the map. That information stays on your computer: on screen, and
   in each drive's last scan, kept in `%LOCALAPPDATA%\Topos` (or the Store
