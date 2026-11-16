@@ -3,7 +3,9 @@ name: release
 # A version tag builds both architectures in parallel (zip, installer, and
 # MSIX package each, every one tested), then one final job bundles the
 # MSIX packages for the Microsoft Store, writes a single SHA256SUMS.txt over
-# every release file, attests them, and creates one draft release.
+# every release file, attests them, and creates one draft release. Until the
+# Store identity from Partner Center is set, a release ships without the
+# Store package; it is still built and tested with test-only values.
 on:
   push:
     tags: ["v*"]
@@ -63,9 +65,9 @@ jobs:
           MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
           MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
         # The installers' file version and the MSIX version are numeric,
-        # so a release version is plain X.Y.Z. A release also ships the
-        # Store package, which must carry the identity Partner Center
-        # assigned; only test builds may fall back to the test-only one.
+        # so a release version is plain X.Y.Z. The Store package must carry
+        # the identity Partner Center assigned; without it, a release leaves
+        # the Store package out rather than ship the test-only one.
         run: |
           version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)
           if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -77,8 +79,7 @@ jobs:
             exit 1
           fi
           if [ "$REF_TYPE" = tag ] && { [ -z "$MSIX_IDENTITY_NAME" ] || [ -z "$MSIX_PUBLISHER" ]; }; then
-            echo "::error::Set the repository variables MSIX_IDENTITY_NAME and MSIX_PUBLISHER from Partner Center before tagging a release (packaging/README.md, Microsoft Store)"
-            exit 1
+            echo "::warning::No Store identity (MSIX_IDENTITY_NAME, MSIX_PUBLISHER): this release ships without the Store package (packaging/README.md, Microsoft Store)"
           fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
           echo "TAG=v$version" >> "$GITHUB_ENV"
@@ -192,6 +193,10 @@ jobs:
       contents: write # create the draft release
       id-token: write # sign the build provenance attestation
       attestations: write
+    env:
+      # Test builds always carry the (test-only) Store package; a release
+      # carries it only with the real identity from Partner Center.
+      SHIP_STORE: ${{ github.ref_type != 'tag' || (vars.MSIX_IDENTITY_NAME != '' && vars.MSIX_PUBLISHER != '') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -233,6 +238,7 @@ jobs:
         shell: powershell
         run: installer\test-msix.ps1 -Package "bundle\Topos-$env:TAG.msixbundle" -Version $env:VERSION
       - name: Wrap the bundle for the Store
+        if: env.SHIP_STORE == 'true'
         # An .msixupload is a zip holding the bundle; it is what Partner
         # Center and the msstore CLI take. It is not installable, which is
         # intended: people install from the Store, the installer, or the zip.
@@ -256,11 +262,14 @@ jobs:
         shell: bash
         run: |
           cd dist
-          expected="Topos-$TAG-store.msixupload
-          Topos-$TAG-x86-setup.exe
+          expected="Topos-$TAG-x86-setup.exe
           Topos-$TAG-x86-windows.zip
           Topos-$TAG-x86_64-setup.exe
           Topos-$TAG-x86_64-windows.zip"
+          if [ "$SHIP_STORE" = true ]; then
+            expected="$expected
+          Topos-$TAG-store.msixupload"
+          fi
           actual=$(printf '%s\n' * | LC_ALL=C sort)
           if [ "$actual" != "$(echo "$expected" | sed 's/^ *//' | LC_ALL=C sort)" ]; then
             echo "::error::unexpected release files:"
