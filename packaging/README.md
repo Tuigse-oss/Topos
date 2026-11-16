@@ -69,7 +69,8 @@ Each release has these files, all listed in one `SHA256SUMS.txt`:
 - `Topos-v<version>-store.msixupload`: the Microsoft Store package (an MSIX
   bundle holding both architectures, wrapped for Partner Center). It is not
   meant to be installed by hand: it is unsigned, because the Store signs
-  what it distributes.
+  what it distributes. Releases made before the Store identity is set
+  (below) leave it out.
 
 None of the files is code-signed (see the README's Install section).
 
@@ -181,9 +182,10 @@ The package identity (name and publisher) must be exactly the one Partner
 Center assigns. Until the repository variables below are set, test builds
 (pull requests and manual runs) use clearly test-only values
 (`TUIGSE.Topos.TestOnly`, `CN=TUIGSE Topos Test Only`) and warn: they
-install and test fine, but the Store rejects them. A tagged release stops
-at its first step until the variables are set, so a test-only package is
-never published, and the `msstore` job refuses to upload one.
+install and test fine, but the Store rejects them. A tagged release made
+before the variables are set still builds and tests the Store package but
+leaves it out of the release, with a warning, so a test-only package is
+never published; and the `msstore` job refuses to upload one.
 
 ### One-time setup
 
