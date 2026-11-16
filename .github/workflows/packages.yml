@@ -2,7 +2,7 @@ name: packages
 
 # Publishes a release to winget, Chocolatey, and the Microsoft Store once it
 # is published on GitHub (drafts have no public download URLs). Scoop needs
-# nothing here: the bradwilliamson/scoop-topos bucket picks up new releases by
+# nothing here: the Tuigse-oss/scoop-topos bucket picks up new releases by
 # itself. Each channel is switched on by a repository variable, so one can
 # be turned off without touching the others:
 #   PUBLISH_WINGET=true      needs secret WINGET_TOKEN

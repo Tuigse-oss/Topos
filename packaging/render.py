@@ -21,7 +21,7 @@ import shutil
 import sys
 from pathlib import Path
 
-REPO = "https://github.com/bradwilliamson/Topos"
+REPO = "https://github.com/Tuigse-oss/Topos"
 HERE = Path(__file__).resolve().parent
 CHANNELS = ("scoop", "winget", "chocolatey")
 

@@ -1,6 +1,6 @@
 # Topos
 
-[![ci](https://github.com/bradwilliamson/Topos/actions/workflows/ci.yml/badge.svg)](https://github.com/bradwilliamson/Topos/actions/workflows/ci.yml)
+[![ci](https://github.com/Tuigse-oss/Topos/actions/workflows/ci.yml/badge.svg)](https://github.com/Tuigse-oss/Topos/actions/workflows/ci.yml)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
 Topos (like *topology*) is a disk-space treemap for Windows 10 and 11. Pick
@@ -42,7 +42,7 @@ free-space tile, and crisp 8-point captions, in a light or dark theme.
 ## Install
 
 Get Topos from the
-[latest release](https://github.com/bradwilliamson/Topos/releases/latest):
+[latest release](https://github.com/Tuigse-oss/Topos/releases/latest):
 
 - **Installer**: `Topos-v<version>-x86_64-setup.exe`, or `-x86-setup.exe`
   for 32-bit Windows. It installs for you alone by default (no
@@ -58,7 +58,7 @@ anyway**:
 
 ```powershell
 Get-FileHash .\Topos-v0.1.0-x86_64-setup.exe   # compare with SHA256SUMS.txt
-gh attestation verify Topos-v0.1.0-x86_64-setup.exe --repo bradwilliamson/Topos
+gh attestation verify Topos-v0.1.0-x86_64-setup.exe --repo Tuigse-oss/Topos
 ```
 
 The second line checks GitHub's build provenance: that the file was built
