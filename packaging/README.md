@@ -8,7 +8,7 @@ Topos ships in six ways, all built from the same release:
 | Installer | `Topos-v<version>-x86_64-setup.exe`, `...-x86-setup.exe` | `release.yml` (Inno Setup) | you, by publishing the draft |
 | winget | `winget install TUIGSE.Topos` | `render.py` | `packages.yml` |
 | Chocolatey | `choco install topos` | `render.py` | `packages.yml` |
-| Scoop | `scoop install topos` | `render.py` | the `bradwilliamson/scoop-topos` bucket |
+| Scoop | `scoop install topos` | `render.py` | the `Tuigse-oss/scoop-topos` bucket |
 | Microsoft Store | Topos in the Store | `release.yml` (`msix/build-msix.ps1`) | `packages.yml` |
 
 This folder holds the templates for winget, Chocolatey, and Scoop, which
@@ -22,7 +22,7 @@ To render the package-manager manifests by hand, for a first submission or
 to check a change:
 
 ```bash
-gh release download v0.1.0 --repo bradwilliamson/Topos --pattern SHA256SUMS.txt
+gh release download v0.1.0 --repo Tuigse-oss/Topos --pattern SHA256SUMS.txt
 python3 packaging/render.py 0.1.0 SHA256SUMS.txt out
 ```
 
@@ -118,7 +118,7 @@ change the Store package's identity name once it is in Partner Center.
 
 ## Scoop
 
-The bucket is its own repository, `bradwilliamson/scoop-topos`, so `main` here
+The bucket is its own repository, `Tuigse-oss/scoop-topos`, so `main` here
 never needs a bot commit. It does not exist yet. To set it up, give it an
 `update` workflow that runs every six hours (and on demand), finds the latest published Topos release, renders
 `scoop/topos.json` with this folder's `render.py` at that tag, and commits it
@@ -132,7 +132,7 @@ workflow there.
 Users install with:
 
 ```powershell
-scoop bucket add topos https://github.com/bradwilliamson/scoop-topos
+scoop bucket add topos https://github.com/Tuigse-oss/scoop-topos
 scoop install topos
 ```
 
@@ -219,7 +219,7 @@ never published, and the `msstore` job refuses to upload one.
    - **Privacy policy:** Topos collects nothing: no telemetry, no
      analytics, no network access, no account. Partner Center may still ask
      for a privacy policy URL; if it does, use
-     <https://github.com/bradwilliamson/Topos/blob/main/PRIVACY.md>.
+     <https://github.com/Tuigse-oss/Topos/blob/main/PRIVACY.md>.
    - **Pricing:** free. (Automated updates only work for free products.)
    - The store listing (description, screenshots), the age rating
      questionnaire, and properties (category: Utilities & tools).

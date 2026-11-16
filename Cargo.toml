@@ -7,7 +7,7 @@ description = "Topos: disk-space treemap visualizer for Windows 10 and 11"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 authors = ["Tuigse LLC"]
-repository = "https://github.com/bradwilliamson/Topos"
+repository = "https://github.com/Tuigse-oss/Topos"
 
 # The program is Topos.exe; the library keeps the crate name so the
 # Gungraun benches can measure the scanner, layout, and painting directly.

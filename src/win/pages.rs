@@ -15,8 +15,8 @@ use winsafe::{self as w, co, gui, prelude::*};
 
 use super::gdi::{self, mul_div};
 
-const PROJECT_URL: &str = "https://github.com/bradwilliamson/Topos";
-const PROJECT_LABEL: &str = "github.com/bradwilliamson/Topos";
+const PROJECT_URL: &str = "https://github.com/Tuigse-oss/Topos";
+const PROJECT_LABEL: &str = "github.com/Tuigse-oss/Topos";
 
 /// Layout constants in 96-dpi pixels.
 const MARGIN: i32 = 24;

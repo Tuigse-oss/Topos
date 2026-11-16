@@ -13,4 +13,4 @@ Topos collects nothing.
 - Setup choices (such as light or dark) are saved in the same folder.
 
 Topos is published by Tuigse LLC. Questions:
-<https://github.com/bradwilliamson/Topos/issues>.
+<https://github.com/Tuigse-oss/Topos/issues>.

@@ -4,11 +4,11 @@ PackageVersion: {{VERSION}}
 PackageLocale: en-US
 Publisher: Tuigse LLC
 PublisherUrl: https://github.com/Tuigse-oss
-PublisherSupportUrl: https://github.com/bradwilliamson/Topos/issues
+PublisherSupportUrl: https://github.com/Tuigse-oss/Topos/issues
 PackageName: Topos
-PackageUrl: https://github.com/bradwilliamson/Topos
+PackageUrl: https://github.com/Tuigse-oss/Topos
 License: MIT OR Apache-2.0
-LicenseUrl: https://github.com/bradwilliamson/Topos/blob/main/LICENSE-MIT
+LicenseUrl: https://github.com/Tuigse-oss/Topos/blob/main/LICENSE-MIT
 Copyright: Copyright (c) 2026 Tuigse LLC
 ShortDescription: Free, open-source disk-space treemap visualizer for Windows 10 and 11.
 Description: |-
@@ -22,6 +22,6 @@ Tags:
   - treemap
   - storage
   - open-source
-ReleaseNotesUrl: https://github.com/bradwilliamson/Topos/releases/tag/v{{VERSION}}
+ReleaseNotesUrl: https://github.com/Tuigse-oss/Topos/releases/tag/v{{VERSION}}
 ManifestType: defaultLocale
 ManifestVersion: 1.10.0

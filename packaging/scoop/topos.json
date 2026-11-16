@@ -1,7 +1,7 @@
 {
     "version": "{{VERSION}}",
     "description": "Free, open-source disk-space treemap visualizer for Windows 10 and 11.",
-    "homepage": "https://github.com/bradwilliamson/Topos",
+    "homepage": "https://github.com/Tuigse-oss/Topos",
     "license": "MIT|Apache-2.0",
     "notes": "Settings and each drive's last scan are kept in %LOCALAPPDATA%\\Topos and survive uninstalling.",
     "architecture": {
@@ -25,10 +25,10 @@
     "autoupdate": {
         "architecture": {
             "64bit": {
-                "url": "https://github.com/bradwilliamson/Topos/releases/download/v$version/Topos-v$version-x86_64-windows.zip"
+                "url": "https://github.com/Tuigse-oss/Topos/releases/download/v$version/Topos-v$version-x86_64-windows.zip"
             },
             "32bit": {
-                "url": "https://github.com/bradwilliamson/Topos/releases/download/v$version/Topos-v$version-x86-windows.zip"
+                "url": "https://github.com/Tuigse-oss/Topos/releases/download/v$version/Topos-v$version-x86-windows.zip"
             }
         },
         "hash": {
