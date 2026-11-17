@@ -9,7 +9,14 @@
 # x86_64-pc-windows-msvc -i zvariant` prints nothing). opener 0.9.0, the
 # latest release, still requires zbus 5. Remove these once opener moves to
 # zbus 6.
+#
+# chrono is marked unmaintained (RUSTSEC-2026-0543, published 2026-11-17):
+# an informational notice with no known vulnerability and no patched
+# version. Topos formats file dates with it (src/format.rs), and trash
+# uses it on Linux only. Remove this once the date formatting moves to
+# jiff and trash no longer needs chrono.
 ignore = [
+    "RUSTSEC-2026-0543", # chrono
     "RUSTSEC-2026-0370", # zvariant
     "RUSTSEC-2026-0371", # zbus_names
     "RUSTSEC-2026-0372", # zvariant_derive
