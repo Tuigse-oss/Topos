@@ -62,8 +62,7 @@ gh attestation verify Topos-v0.1.0-x86_64-setup.exe --repo Tuigse-oss/Topos
 ```
 
 The second line checks GitHub's build provenance: that the file was built
-by this repository's release workflow from a tagged commit. See the
-[code signing policy](#code-signing-policy) for how releases will be signed.
+by this repository's release workflow from a tagged commit.
 
 You can also [build Topos from source](#building).
 
@@ -138,23 +137,6 @@ benchmarks are in [docs/performance.md](docs/performance.md).
 - Topos sends nothing anywhere. See [PRIVACY.md](PRIVACY.md).
 
 To report a security problem, see [SECURITY.md](SECURITY.md).
-
-## Code signing policy
-
-Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
-
-No release is signed yet. We are applying to SignPath Foundation, and this policy describes how signing will work once the project is accepted.
-
-Only the exes and installers built by this repository's [release workflow](.github/workflows/release.yml) from a version tag will be signed, and a maintainer will approve each signing request before SignPath signs it. Nothing built elsewhere, and no third-party program, will be signed under this certificate.
-
-**Team roles**
-
-- Committers and reviewers: [Brad Williamson](https://github.com/bradwilliamson)
-- Approvers: [Brad Williamson](https://github.com/bradwilliamson)
-
-**Privacy policy**
-
-This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. Topos contains no network code; see [PRIVACY.md](PRIVACY.md).
 
 ## Building
 
